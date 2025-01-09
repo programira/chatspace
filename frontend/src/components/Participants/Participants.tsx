@@ -1,16 +1,18 @@
 import React from 'react';
 import { Box, Typography, List, ListItem, ListItemText, ListItemIcon, Avatar } from '@mui/material';
-import CircleIcon from '@mui/icons-material/Circle'; // For active status indicator
-
-const mockParticipants = [
-  { id: 1, name: 'Alice', isActive: true },
-  { id: 2, name: 'Bob', isActive: false },
-  { id: 3, name: 'Charlie', isActive: true },
-  { id: 4, name: 'Diana', isActive: true },
-]; // Replace this later with real data
+import CircleIcon from '@mui/icons-material/Circle';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../store';
+import { Participant } from '../../types/Participant';
 
 const Participants: React.FC = () => {
-  const activeParticipants = mockParticipants.filter(user => user.isActive);
+  const participants: Participant[] = useSelector((state: RootState) => state.participants.list); // Get participants from Redux
+  const currentUser = useSelector((state: RootState) => state.user.currentUser); // Get the logged-in user
+
+  // Include the current user in the participants list if not already present
+  const allParticipants = currentUser
+    ? [currentUser, ...participants.filter(p => p.id !== currentUser.id)]
+    : participants;
 
   return (
     <Box
@@ -25,12 +27,12 @@ const Participants: React.FC = () => {
     >
       {/* Title with Participant Count */}
       <Typography variant="h6">
-        Participants ({mockParticipants.length})
+        Participants ({allParticipants.length})
       </Typography>
 
       {/* Participants List */}
       <List>
-        {mockParticipants.map(user => (
+        {allParticipants.map(user => (
           <ListItem
             key={user.id}
             sx={{
@@ -45,7 +47,9 @@ const Participants: React.FC = () => {
               <Avatar sx={{ width: 30, height: 30 }}>
                 {user.name.charAt(0)} {/* Display first letter of the name */}
               </Avatar>
-              <ListItemText primary={user.name} />
+              <ListItemText
+                primary={user.id === currentUser?.id ? `${user.name} (You)` : user.name}
+              />
             </Box>
 
             {/* Active Indicator */}

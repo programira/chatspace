@@ -1,41 +1,40 @@
 import React, { useState } from 'react';
 import { Box, Typography, TextField, Button } from '@mui/material';
-import * as ReactEmoji from 'react-emoji';
+// import * as ReactEmoji from 'react-emoji';
+import { useSelector, useDispatch } from 'react-redux';
+import { RootState, AppDispatch } from '../../store';
+import { addMessage } from '../../store/messagesSlice';
+import { Message } from '../../types/Message';
 
-interface Message {
-  id: number;
-  name: string;
-  text: string;
-  time: string;
-}
+const Chat: React.FC = () => {
+  //   const [messages, setMessages] = useState<Message[]>([
+  //     { id: 1, name: 'Alice', text: 'Hello everyone! 😊', time: '10:15' },
+  //     { id: 2, name: 'Bob', text: 'Hi Alice! How are you? 😄', time: '10:16' },
+  //     { id: 3, name: 'Charlie', text: 'Good morning! ☀️', time: '10:17' },
+  //   ]);
 
-const Chat: React.FC<{ userName: string }> = ({ userName }) => {
-  const [messages, setMessages] = useState<Message[]>([
-    { id: 1, name: 'Alice', text: 'Hello everyone! 😊', time: '10:15' },
-    { id: 2, name: 'Bob', text: 'Hi Alice! How are you? 😄', time: '10:16' },
-    { id: 3, name: 'Charlie', text: 'Good morning! ☀️', time: '10:17' },
-  ]);
-  const [newMessage, setNewMessage] = useState<string>('');
+  const dispatch = useDispatch<AppDispatch>();
+  const { currentUser, isLoggedIn } = useSelector((state: RootState) => state.user);
+  const messages: Message[] = useSelector((state: RootState) => state.messages.list); // Use the Message type
+  const [newMessage, setNewMessage] = useState('');
 
   const handleSend = () => {
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || !currentUser) return;
 
-    const currentTime = new Date();
-    const formattedTime = `${currentTime.getHours()}:${currentTime
-      .getMinutes()
-      .toString()
-      .padStart(2, '0')}`;
-
-    const message: Message = {
-      id: messages.length + 1,
-      name: userName,
+    const newMsg: Message = {
+      id: Date.now().toString(),
+      senderId: currentUser.id,
       text: newMessage,
-      time: formattedTime,
+      timestamp: new Date().toISOString(),
     };
 
-    setMessages((prevMessages) => [...prevMessages, message]);
-    setNewMessage('');
+    dispatch(addMessage(newMsg)); // Dispatch the new message to the Redux store
+    setNewMessage(''); // Clear the input field
   };
+
+  if (!isLoggedIn) {
+    return <div>Please log in to participate in the chat.</div>;
+  }
 
   return (
     <Box
@@ -48,7 +47,8 @@ const Chat: React.FC<{ userName: string }> = ({ userName }) => {
         backgroundColor: '#e0e0e0',
         borderRadius: 1,
         color: '#000',
-        height: '100%',
+        // height: '100%',
+        overflow: 'hidden',
       }}
     >
       {/* Chat Messages */}
@@ -82,21 +82,20 @@ const Chat: React.FC<{ userName: string }> = ({ userName }) => {
               }}
             >
               <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                {message.name}
+                {message.senderId === currentUser?.id ? 'You' : message.senderId}
               </Typography>
               <Typography
                 variant="body2"
                 sx={{ color: 'gray', fontSize: '0.85rem' }}
               >
-                {message.time}
+                {new Date(message.timestamp).toLocaleTimeString()}
               </Typography>
             </Box>
-            <Typography variant="body2">{ReactEmoji.emojify(message.text)}</Typography>
+            <Typography variant="body2">{message.text}</Typography>
           </Box>
         ))}
       </Box>
 
-      {/* Message Input Box */}
       <Box sx={{ display: 'flex', gap: 1, borderTop: '1px solid #ccc', paddingTop: 1 }}>
         <TextField
           fullWidth
@@ -106,12 +105,7 @@ const Chat: React.FC<{ userName: string }> = ({ userName }) => {
           onKeyDown={(e) => e.key === 'Enter' && handleSend()}
           sx={{ backgroundColor: '#fff', borderRadius: 1 }}
         />
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={handleSend}
-          sx={{ textTransform: 'none' }}
-        >
+        <Button variant="contained" color="primary" onClick={handleSend}>
           Send
         </Button>
       </Box>

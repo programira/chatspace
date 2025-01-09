@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Box } from '@mui/material';
+import { useSelector } from 'react-redux';
+import { RootState } from './store';
 import Login from './components/Login/Login';
 import Layout from './components/Layout/Layout';
 
 const App = () => {
-  const [loggedIn, setLoggedIn] = useState(false); // State to toggle screens
-  const [theme, setTheme] = useState('light'); // Theme state
-  const [userName, setUserName] = useState(''); // Store username from Login
+  const { isLoggedIn, currentUser } = useSelector((state: RootState) => state.user); // Use Redux state for user
+  const [theme, setTheme] = React.useState('light'); // Theme state
 
   return (
     <Box
@@ -17,15 +18,10 @@ const App = () => {
       }}
     >
       {/* Conditionally render either Login or Layout */}
-      {!loggedIn ? (
-        <Login
-          onLogin={(name: string) => {
-            setUserName(name); // Capture username
-            setLoggedIn(true);
-          }}
-        />
+      {!isLoggedIn ? (
+        <Login onLogin={() => {}} /> 
       ) : (
-        <Layout theme={theme} setTheme={setTheme} userName={userName} />
+        <Layout theme={theme} setTheme={setTheme} userName={currentUser?.name || ''} />
       )}
     </Box>
   );
