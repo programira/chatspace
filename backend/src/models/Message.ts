@@ -10,6 +10,6 @@ export class Message extends Model {
   @Column({ type: DataType.INTEGER, allowNull: false })
   senderId!: number;
 
-  @BelongsTo(() => User, { as: 'messageSender' }) 
+  @BelongsTo(() => User, { as: 'messageAuthor' }) 
   sender!: User;
 }

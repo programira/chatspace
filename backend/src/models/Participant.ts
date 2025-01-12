@@ -7,7 +7,7 @@ export class Participant extends Model {
   @Column({ type: DataType.INTEGER, allowNull: false })
   userId!: number;
 
-  @BelongsTo(() => User, { as: 'participantUser' })
+  @BelongsTo(() => User, { as: 'participant' })
   user!: User;
 
   @Column({ type: DataType.DATE, allowNull: true })
