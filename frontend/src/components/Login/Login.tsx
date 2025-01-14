@@ -5,23 +5,51 @@ import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import { useDispatch } from 'react-redux';
 import { setUser } from '../../store/userSlice'; // Action to set user
 import { AppDispatch } from '../../store'; // Type for dispatch
+import { createUser } from '../../services/userService';
+import useWebSocket from '../../hooks/useWebSocket';
+import { WS_URL } from '../../config/constants';
 
 const Login: React.FC<{ onLogin: () => void }> = ({ onLogin }) => {
 	const [name, setName] = useState('');
 	const dispatch = useDispatch<AppDispatch>();
+	const { sendMessage } = useWebSocket(WS_URL);
 
-	const handleLogin = () => {
-		if (name.trim()) {
-			dispatch(
-				setUser({
-					id: Date.now().toString(), // Generate a unique ID
-					name: name.trim(),
-					isActive: true,
-				})
-			);
-			onLogin(); // Notify App that login is complete
-		}
+  const handleLogin = async () => {
+    if (!name.trim()) return;
+
+	try {
+		// Call the API to create the user
+		const user = await createUser(name);
+  
+		// Update Redux store with the logged-in user
+		dispatch(setUser(user));
+  
+		// Notify other participants via WebSocket
+		sendMessage({
+		  type: 'login',
+		  userId: user.id,
+		  userName: user.name,
+		});
+  
+		// Trigger the onLogin callback to navigate to the chat
+		onLogin();
+	  } catch (error) {
+		console.error('Login error:', error);
+	  }
 	};
+
+	// const handleLogin = () => {
+	// 	if (name.trim()) {
+	// 		dispatch(
+	// 			setUser({
+	// 				id: Date.now().toString(), // Generate a unique ID
+	// 				name: name.trim(),
+	// 				isActive: true,
+	// 			})
+	// 		);
+	// 		onLogin(); // Notify App that login is complete
+	// 	}
+	// };
 
 	return (
 		<Box

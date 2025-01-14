@@ -5,6 +5,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../../store';
 import { addMessage } from '../../store/messagesSlice';
 import { Message } from '../../types/Message';
+// import { useWebSocket } from '../../hooks/useWebSocket';
 
 const Chat: React.FC = () => {
   //   const [messages, setMessages] = useState<Message[]>([
@@ -13,10 +14,12 @@ const Chat: React.FC = () => {
   //     { id: 3, name: 'Charlie', text: 'Good morning! ☀️', time: '10:17' },
   //   ]);
 
+  // const { listen } = useWebSocket();
   const dispatch = useDispatch<AppDispatch>();
   const { currentUser, isLoggedIn } = useSelector((state: RootState) => state.user);
   const messages: Message[] = useSelector((state: RootState) => state.messages.list); // Use the Message type
   const [newMessage, setNewMessage] = useState('');
+  console.log(messages);
 
   const handleSend = () => {
     if (!newMessage.trim() || !currentUser) return;
@@ -69,7 +72,7 @@ const Chat: React.FC = () => {
               display: 'flex',
               flexDirection: 'column',
               padding: 1.5,
-              backgroundColor: '#fff',
+              backgroundColor: message.senderId === 'Meetingbot' ? '#f0f0f0' : '#fff',
               borderRadius: 1,
               boxShadow: 1,
             }}
@@ -82,7 +85,11 @@ const Chat: React.FC = () => {
               }}
             >
               <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                {message.senderId === currentUser?.id ? 'You' : message.senderId}
+              {message.senderId === 'Meetingbot'
+                  ? 'Meetingbot'
+                  : message.senderId === currentUser?.id
+                  ? 'You'
+                  : message.senderId}
               </Typography>
               <Typography
                 variant="body2"
@@ -91,7 +98,14 @@ const Chat: React.FC = () => {
                 {new Date(message.timestamp).toLocaleTimeString()}
               </Typography>
             </Box>
-            <Typography variant="body2">{message.text}</Typography>
+            <Typography 
+              variant="body2"
+              sx={{
+                fontStyle: message.senderId === 'Meetingbot' ? 'italic' : 'normal',
+              }}
+              >
+                {message.text}
+              </Typography>
           </Box>
         ))}
       </Box>

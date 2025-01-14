@@ -5,11 +5,19 @@ import { setupSwagger } from './config/swagger';
 import messagesRoutes from './routes/messages';
 import usersRoutes from './routes/users';
 import participantsRoutes from './routes/participants';
-// import { setupWebSocket } from './websockets';
+import { setupWebSocket } from './websockets';
+import cors from 'cors';
 
 // Initialize Express app
 const app = express();
 const port = process.env.PORT || 3000;
+
+// Enable CORS
+app.use(cors({
+  origin: 'http://localhost:5173', // Allow requests from the frontend
+  methods: ['GET', 'POST', 'PATCH', 'DELETE'], // Allowed HTTP methods
+  allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
+}));
 
 // Middleware
 app.use(express.json());
@@ -42,7 +50,7 @@ setupSwagger(app);
     const server = createServer(app);
 
     // Optional: Initialize WebSocket (if needed)
-    // setupWebSocket(server);
+    setupWebSocket(server);
 
     server.listen(port, () => {
       console.log(`Server running on http://localhost:${port}`);

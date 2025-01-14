@@ -1,8 +1,9 @@
 import express from 'express';
 import { Participant } from '../models/Participant';
 import { User } from '../models/User';
+import { Request, Response, Router } from 'express';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 /**
  * @swagger
@@ -37,9 +38,6 @@ const router = express.Router();
  *             name:
  *               type: string
  *               description: The user's name
- *             avatarUrl:
- *               type: string
- *               description: The user's avatar URL
  *             isActive:
  *               type: boolean
  *               description: Whether the user is currently active
@@ -49,10 +47,7 @@ const router = express.Router();
  *         joinedAt: "2025-01-01T12:00:00Z"
  *         isActive: true
  *         user:
- *           id: "123"
  *           name: "Alice"
- *           avatarUrl: "https://example.com/avatar.jpg"
- *           isActive: true
  */
 
 /**
@@ -78,10 +73,10 @@ router.get('/', async (req, res) => {
       include: [
         {
           model: User,
-          as: 'user',
-          attributes: ['id', 'name', 'avatarUrl', 'isActive']
-        }
-      ]
+          as: 'user', // This alias is used in the model associations Participant.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+          attributes: ['name'],
+        },
+      ],
     });
     res.json(participants);
   } catch (error) {
@@ -120,40 +115,42 @@ router.post('/', async (req, res) => {
   }
 });
 
-// /**
-//  * @swagger
-//  * /api/participants/{id}:
-//  *   delete:
-//  *     summary: Remove a participant
-//  *     tags:
-//  *       - Participants
-//  *     parameters:
-//  *       - in: path
-//  *         name: id
-//  *         required: true
-//  *         schema:
-//  *           type: string
-//  *         description: The participant ID
-//  *     responses:
-//  *       200:
-//  *         description: Participant successfully removed
-//  *         content:
-//  *           application/json:
-//  *             schema:
-//  *               type: object
-//  *               properties:
-//  *                 message:
-//  *                   type: string
-//  *                   example: "Participant removed."
-//  */
-// router.delete('/:id', async (req, res) => {
-//   try {
-//     const { id } = req.params;
-//     await Participant.destroy({ where: { id } });
-//     res.status(200).json({ message: 'Participant removed.' });
-//   } catch (error) {
-//     res.status(500).json({ error: 'Failed to remove participant' });
-//   }
-// });
+/**
+ * @swagger
+ * /api/participants/{id}:
+ *   delete:
+ *     summary: Remove a participant
+ *     tags:
+ *       - Participants
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the user to remove from participants
+ *     responses:
+ *       200:
+ *         description: Participant removed successfully
+ *       404:
+ *         description: Participant not found
+ */
+router.delete('/:id', async (req: Request, res: Response): Promise<any> => {
+  const { id } = req.params;
+
+  try {
+    const participant = await Participant.findOne({ where: { userId: id } });
+
+    if (!participant) {
+      return res.status(404).json({ message: 'Participant not found' });
+    }
+
+    await participant.destroy();
+    res.status(200).json({ message: 'Participant removed successfully' });
+  } catch (error) {
+    console.error('Error removing participant:', error);
+    res.status(500).json({ message: 'Internal server error.' });
+  }
+});
 
 export default router;

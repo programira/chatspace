@@ -1,18 +1,29 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Box, Typography, List, ListItem, ListItemText, ListItemIcon, Avatar } from '@mui/material';
 import CircleIcon from '@mui/icons-material/Circle';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../store';
 import { Participant } from '../../types/Participant';
+import { fetchParticipants } from '../../services/userService';
+import { setParticipants } from '../../store/participantsSlice';
 
 const Participants: React.FC = () => {
+  const dispatch = useDispatch();
   const participants: Participant[] = useSelector((state: RootState) => state.participants.list); // Get participants from Redux
   const currentUser = useSelector((state: RootState) => state.user.currentUser); // Get the logged-in user
+  
+  useEffect(() => {
+    const loadParticipants = async () => {
+      try {
+        const data = await fetchParticipants();
+        dispatch(setParticipants(data)); // Update Redux state with fetched participants
+      } catch (error) {
+        console.error('Error fetching participants:', error);
+      }
+    };
 
-  // Include the current user in the participants list if not already present
-  const allParticipants = currentUser
-    ? [currentUser, ...participants.filter(p => p.id !== currentUser.id)]
-    : participants;
+    loadParticipants();
+  }, [dispatch]);  
 
   return (
     <Box
@@ -27,14 +38,14 @@ const Participants: React.FC = () => {
     >
       {/* Title with Participant Count */}
       <Typography variant="h6">
-        Participants ({allParticipants.length})
+        Participants ({participants.length})
       </Typography>
 
       {/* Participants List */}
       <List>
-        {allParticipants.map(user => (
+        {participants.map(participant => (
           <ListItem
-            key={user.id}
+            key={participant.id}
             sx={{
               display: 'flex',
               justifyContent: 'space-between',
@@ -45,10 +56,10 @@ const Participants: React.FC = () => {
             {/* User Name */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Avatar sx={{ width: 30, height: 30 }}>
-                {user.name.charAt(0)} {/* Display first letter of the name */}
+                {participant.user.name.charAt(0)} {/* Display first letter of the name */}
               </Avatar>
               <ListItemText
-                primary={user.id === currentUser?.id ? `${user.name} (You)` : user.name}
+                primary={participant.userId === currentUser?.id ? `${currentUser.name} (You)` : participant.user.name}
               />
             </Box>
 
@@ -57,7 +68,7 @@ const Participants: React.FC = () => {
               <CircleIcon
                 fontSize="small"
                 sx={{
-                  color: user.isActive ? 'green' : 'grey', // Green for active, grey otherwise
+                  color: participant.isActive ? 'green' : 'grey', // Green for active, grey otherwise
                 }}
               />
             </ListItemIcon>

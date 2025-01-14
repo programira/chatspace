@@ -13,6 +13,9 @@ const participantsSlice = createSlice({
   name: 'participants',
   initialState,
   reducers: {
+    setParticipants: (state, action: PayloadAction<Participant[]>) => {
+      state.list = action.payload;
+    },
     addParticipant: (state, action: PayloadAction<Participant>) => {
       state.list.push(action.payload);
     },
@@ -22,6 +25,6 @@ const participantsSlice = createSlice({
   },
 });
 
-export const { addParticipant, removeParticipant } = participantsSlice.actions;
+export const { setParticipants, addParticipant, removeParticipant } = participantsSlice.actions;
 
 export default participantsSlice.reducer;

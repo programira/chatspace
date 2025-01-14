@@ -38,7 +38,7 @@ const Layout: React.FC<LayoutProps> = ({ theme, setTheme, userName }) => {
         <Participants />
 
         {/* Chat Section */}
-        <Chat userName={userName} />
+        <Chat />
       </Box>
     </Box>
   );

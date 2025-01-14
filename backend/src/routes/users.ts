@@ -1,7 +1,9 @@
 import express from 'express';
 import { User } from '../models/User';
+import { Participant } from '../models/Participant';
+import { Request, Response, Router } from 'express';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 /**
  * @swagger
@@ -47,21 +49,58 @@ router.get('/', async (req, res) => {
  * @swagger
  * /api/users:
  *   post:
- *     summary: Create a new user
+ *     summary: Log in or create a user
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/User'
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Name of the user
  *     responses:
- *       201:
- *         description: The user was successfully created
+ *       200:
+ *         description: User successfully logged in or created
+ *       400:
+ *         description: Bad request
  */
-router.post('/', async (req, res) => {
-  const { name, avatarUrl } = req.body;
-  const user = await User.create({ name });
-  res.status(201).json(user);
+
+router.post('/', async (req: Request, res: Response): Promise<any> => {
+  const { name } = req.body;
+
+  if (!name) {
+    return res.status(400).json({ message: 'Name is required.' });
+  }
+
+  try {
+    // Find or create the user
+    const [user] = await User.findOrCreate({
+      where: { name },
+    });
+
+    // Update or create the participant entry
+    let participant = await Participant.findOne({ where: { userId: user.id } });
+    if (!participant) {
+      participant = await Participant.create({
+        userId: user.id,
+        joinedAt: new Date(),
+        isActive: true,
+      });
+    } else {
+      await participant.update({
+        joinedAt: new Date(),
+        isActive: true,
+      });
+    }
+
+    // Return the user data
+    return res.status(200).json(user);
+  } catch (error) {
+    console.error('Error logging in user:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
 });
 
 // /**
