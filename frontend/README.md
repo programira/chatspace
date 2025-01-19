@@ -74,6 +74,17 @@ npm install -g pnpm
   ```
 
 ---
+## **Running the Applidation**
+
+1. Start the development server:
+  ```bash
+  pnpm dev
+  ```
+1. The server should be running on
+  ```bash
+  http://localhost:5173
+  ```  
+---
 
 ## **Technologies Used**
 
