@@ -1,16 +1,18 @@
 import React, { useEffect } from 'react';
-import { Box, Typography, List, ListItem, ListItemText, ListItemIcon, Avatar } from '@mui/material';
+import { Box, Typography, List, ListItem, ListItemText, ListItemIcon, Avatar,  } from '@mui/material';
 import CircleIcon from '@mui/icons-material/Circle';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../store';
 import { Participant } from '../../types/Participant';
 import { fetchParticipants } from '../../services/userService';
 import { setParticipants } from '../../store/participantsSlice';
+import { selectWebSocketState } from '../../store/webSocketSlice';
 
 const Participants: React.FC = () => {
   const dispatch = useDispatch();
   const participants: Participant[] = useSelector((state: RootState) => state.participants.list); // Get participants from Redux
   const currentUser = useSelector((state: RootState) => state.user.currentUser); // Get the logged-in user
+  const { isConnected } = useSelector(selectWebSocketState); 
   
   useEffect(() => {
     const loadParticipants = async () => {
@@ -23,7 +25,7 @@ const Participants: React.FC = () => {
     };
 
     loadParticipants();
-  }, [dispatch]);  
+  }, [dispatch, isConnected]);  
 
   return (
     <Box
@@ -33,7 +35,10 @@ const Participants: React.FC = () => {
         backgroundColor: '#e0e0e0',
         borderRadius: 1,
         color: '#000',
-        overflowY: 'auto', // Enable scrolling if the list is long
+        // overflowY: 'auto', // Enable scrolling if the list is long
+        height: '97%', // Make sure it takes full height
+        display: 'flex',
+        flexDirection: 'column',
       }}
     >
       {/* Title with Participant Count */}
@@ -42,7 +47,13 @@ const Participants: React.FC = () => {
       </Typography>
 
       {/* Participants List */}
-      <List>
+      <List
+      sx={{
+        flexGrow: 1,
+        overflowY: 'auto', // Enables scrolling
+        maxHeight: 'calc(100vh - 150px)', // Adjust this value as needed
+      }}
+      >
         {participants.map(participant => (
           <ListItem
             key={participant.id}

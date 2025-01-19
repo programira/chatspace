@@ -1,43 +1,125 @@
-import React, { useState } from 'react';
-import { Box, Typography, TextField, Button } from '@mui/material';
-// import * as ReactEmoji from 'react-emoji';
+import React, { useState, useEffect, useRef } from 'react';
+import { Box, Typography, TextField, Button, IconButton } from '@mui/material';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../../store';
-import { addMessage } from '../../store/messagesSlice';
+import { fetchRecentMessages, createMessage, editMessage, deleteMessage } from '../../services/messageService';
+import { setMessages, addMessage, updateMessage } from '../../store/messagesSlice';
 import { Message } from '../../types/Message';
-// import { useWebSocket } from '../../hooks/useWebSocket';
+import CustomPreview from '../CustomPreview/CustomPreview';
+import { Edit, Delete, EmojiEmotions, Gif } from '@mui/icons-material'; // Add EmojiEmotions icon
+import EmojiPicker from 'emoji-picker-react';
+import { GiphyFetch } from '@giphy/js-fetch-api';
+import { Grid } from '@giphy/react-components';
+import { GIPHY_API_KEY } from '../../config/constants';
+import { sendWebSocketMessage } from '../../store/webSocketSlice';
+
+const gf = new GiphyFetch(GIPHY_API_KEY);
 
 const Chat: React.FC = () => {
-  //   const [messages, setMessages] = useState<Message[]>([
-  //     { id: 1, name: 'Alice', text: 'Hello everyone! 😊', time: '10:15' },
-  //     { id: 2, name: 'Bob', text: 'Hi Alice! How are you? 😄', time: '10:16' },
-  //     { id: 3, name: 'Charlie', text: 'Good morning! ☀️', time: '10:17' },
-  //   ]);
-
-  // const { listen } = useWebSocket();
   const dispatch = useDispatch<AppDispatch>();
   const { currentUser, isLoggedIn } = useSelector((state: RootState) => state.user);
-  const messages: Message[] = useSelector((state: RootState) => state.messages.list); // Use the Message type
-  const [newMessage, setNewMessage] = useState('');
-  console.log(messages);
+  const messages: Message[] = useSelector((state: RootState) => state.messages.list);
+  const [messageInput, setMessageInput] = useState('');
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
 
-  const handleSend = () => {
-    if (!newMessage.trim() || !currentUser) return;
+  const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
 
-    const newMsg: Message = {
-      id: Date.now().toString(),
-      senderId: currentUser.id,
-      text: newMessage,
-      timestamp: new Date().toISOString(),
+  const [isGiphyOpen, setIsGiphyOpen] = useState(false);
+  const [gifResults, setGifResults] = useState<any[]>([]);
+  const [searchTerm, setSearchTerm] = useState('trending');
+
+  // Ref to track the last message for auto-scroll
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+
+  // Auto-scroll to last message when messages update
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]); // Runs every time messages change
+
+  // Fetch messages when the chat session starts
+  useEffect(() => {
+    const loadMessages = async () => {
+      const messagesFromApi = await fetchRecentMessages();
+      dispatch(setMessages(messagesFromApi));
     };
 
-    dispatch(addMessage(newMsg)); // Dispatch the new message to the Redux store
-    setNewMessage(''); // Clear the input field
+    loadMessages();
+
+  }, [dispatch]);
+
+  // Send or edit message
+  const handleSend = async () => {
+    if (!messageInput.trim() || !currentUser) return;
+
+    if (editingMessageId) {
+      // Editing existing message
+      const updatedMessage = await editMessage(editingMessageId, messageInput, currentUser.id);
+      dispatch(updateMessage(updatedMessage));
+      // sendMessage('message:edit', updatedMessage);
+      dispatch(sendWebSocketMessage('message:edit', updatedMessage));
+      setEditingMessageId(null);
+    } else {
+      // Sending new message
+      const newMsg = await createMessage(messageInput, currentUser.id);
+      const formattedMsg = {
+        ...newMsg,
+        senderName: currentUser.name,
+      };
+      dispatch(addMessage(formattedMsg));
+      dispatch(sendWebSocketMessage('message:new', formattedMsg));
+    }
+
+    setMessageInput('');
+  };
+
+  // Handle edit click
+  const handleEdit = (message: Message) => {
+    setMessageInput(message.text);
+    setEditingMessageId(message.id);
+  };
+
+  // Handle delete message
+  const handleDelete = async (id: string) => {
+    if (!currentUser) return;
+    const updatedMessage = await deleteMessage(id, currentUser.id);
+    dispatch(updateMessage(updatedMessage));
+    dispatch(sendWebSocketMessage('message:delete', updatedMessage));
+  };
+
+  // Cancel editing when pressing ESC
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape' && editingMessageId) {
+      setEditingMessageId(null);
+      setMessageInput('');
+    }
+  };
+
+  // Add emoji to message input
+  const handleEmojiClick = (emojiObject: { emoji: string }) => {
+    setMessageInput((prev) => prev + emojiObject.emoji);
   };
 
   if (!isLoggedIn) {
     return <div>Please log in to participate in the chat.</div>;
   }
+
+  const renderMessageWithLinks = (text: string) => {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = text.split(urlRegex);
+
+    return parts.map((part, index) =>
+      part.match(urlRegex) ? <CustomPreview key={index} url={part} /> : part
+    );
+  };
+
+  // Fetch GIFs from Giphy API
+  const fetchGifs = (offset: number = 0) => gf.search(searchTerm, { limit: 8, offset });
+
+  // Insert GIF URL into input field (just like emojis)
+  const handleSelectGif = async (gifUrl: string) => {
+    setMessageInput((prev) => prev + ' ' + gifUrl);
+    setIsGiphyOpen(false);
+  };
 
   return (
     <Box
@@ -50,8 +132,9 @@ const Chat: React.FC = () => {
         backgroundColor: '#e0e0e0',
         borderRadius: 1,
         color: '#000',
-        // height: '100%',
         overflow: 'hidden',
+        height: '97%',
+        position: 'relative',
       }}
     >
       {/* Chat Messages */}
@@ -62,6 +145,7 @@ const Chat: React.FC = () => {
           display: 'flex',
           flexDirection: 'column',
           gap: 2,
+          paddingBottom: '80px',
         }}
       >
         <Typography variant="h6">Chat</Typography>
@@ -85,44 +169,139 @@ const Chat: React.FC = () => {
               }}
             >
               <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-              {message.senderId === 'Meetingbot'
+                {message.senderId === 'Meetingbot'
                   ? 'Meetingbot'
                   : message.senderId === currentUser?.id
-                  ? 'You'
-                  : message.senderId}
+                    ? 'You'
+                    : message.senderName || message.messageSender?.name}
               </Typography>
               <Typography
                 variant="body2"
                 sx={{ color: 'gray', fontSize: '0.85rem' }}
               >
-                {new Date(message.timestamp).toLocaleTimeString()}
+                {message.createdAt === message.updatedAt
+                  ? new Date(message.createdAt).toISOString().replace('T', ' ').split('.')[0]
+                  : `edited @ ${new Date(message.updatedAt).toISOString().replace('T', ' ').split('.')[0]}`}
               </Typography>
             </Box>
-            <Typography 
-              variant="body2"
-              sx={{
-                fontStyle: message.senderId === 'Meetingbot' ? 'italic' : 'normal',
-              }}
+
+            {/* If message is a Giphy link, render an image */}
+            {message.text.includes('giphy.com/media') ? (
+              <img
+                src={message.text}
+                alt="GIF"
+                width="150"
+                style={{ borderRadius: 8 }}
+              />
+            ) : (
+              <Typography
+                variant="body2"
+                sx={{
+                  fontStyle: message.senderId === 'Meetingbot' ? 'italic' : 'normal',
+                }}
               >
-                {message.text}
+                {renderMessageWithLinks(message.text)}
               </Typography>
+
+            )}
+
+            {/* Edit & Delete Buttons */}
+            {message.senderId === currentUser?.id && (
+              <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', marginTop: 0.5 }}>
+                <IconButton size="small" onClick={() => handleEdit(message)}>
+                  <Edit fontSize="small" sx={{ color: '#1976d2' }} />
+                </IconButton>
+                <IconButton size="small" onClick={() => handleDelete(message.id)}>
+                  <Delete fontSize="small" sx={{ color: 'red' }} />
+                </IconButton>
+              </Box>
+            )}
           </Box>
         ))}
+        {/* This div ensures auto-scrolling always happens */}
+        <div ref={messagesEndRef} />
       </Box>
 
-      <Box sx={{ display: 'flex', gap: 1, borderTop: '1px solid #ccc', paddingTop: 1 }}>
+      {/* Input Box */}
+      <Box
+        sx={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          width: '98%',
+          display: 'flex',
+          gap: 1,
+          padding: 2,
+          backgroundColor: '#e0e0e0',
+          borderTop: '1px solid #ccc',
+          zIndex: 1000,
+        }}>
         <TextField
           fullWidth
           placeholder="Type your message..."
-          value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+          value={messageInput}
+          onChange={(e) => setMessageInput(e.target.value)}
+          onKeyDown={handleKeyDown} // Detect ESC key press
           sx={{ backgroundColor: '#fff', borderRadius: 1 }}
         />
+        <IconButton onClick={() => setIsEmojiPickerOpen((prev) => !prev)} color="primary">
+          <EmojiEmotions />
+        </IconButton>
+        <IconButton onClick={() => setIsGiphyOpen((prev) => !prev)} color="secondary">
+          <Gif />
+        </IconButton>
         <Button variant="contained" color="primary" onClick={handleSend}>
-          Send
+          {editingMessageId ? 'Update' : 'Send'}
         </Button>
       </Box>
+      {/* Emoji Picker */}
+      {isEmojiPickerOpen && (
+        <Box
+          sx={{
+            position: 'absolute',
+            bottom: 90,
+            right: 31,
+            zIndex: 10
+          }}>
+          <EmojiPicker onEmojiClick={handleEmojiClick} />
+        </Box>
+      )}
+
+      {/* Giphy Picker */}
+      {isGiphyOpen && (
+        <Box
+          sx={{
+            position: 'absolute',
+            bottom: 90,
+            right: 30,
+            zIndex: 10,
+            backgroundColor: '#fff',
+            padding: 2,
+            borderRadius: 2,
+            boxShadow: 3,
+            width: 320,
+            maxHeight: 300,
+            overflowY: 'auto',
+          }}
+        >
+          <TextField
+            fullWidth
+            placeholder="Search GIFs..."
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <Grid
+            width={300}
+            columns={3}
+            fetchGifs={(offset) => fetchGifs(offset)}
+            onGifClick={(gif, e) => {
+              e.preventDefault();
+              handleSelectGif(gif.images.fixed_height.url);
+            }}
+          />
+        </Box>
+      )}
+
+
     </Box>
   );
 };

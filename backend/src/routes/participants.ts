@@ -153,4 +153,45 @@ router.delete('/:id', async (req: Request, res: Response): Promise<any> => {
   }
 });
 
+
+/**
+ * @swagger
+ * /api/participants/user/{userId}:
+ *   get:
+ *     summary: Get participant by userId
+ *     tags:
+ *       - Participants
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The userId to find the participant
+ *     responses:
+ *       200:
+ *         description: Returns the participant details
+ *       404:
+ *         description: Participant not found
+ */
+router.get('/user/:userId', async (req: Request, res: Response): Promise<any> => {
+  const { userId } = req.params;
+
+  try {
+    const participant = await Participant.findOne({
+      where: { userId },
+      include: [{ model: User, as: 'user', attributes: ['id', 'name'] }],
+    });
+
+    if (!participant) {
+      return res.status(404).json({ message: 'Participant not found' });
+    }
+
+    res.json(participant);
+  } catch (error) {
+    console.error('Error fetching participant by userId:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 export default router;

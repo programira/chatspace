@@ -31,3 +31,9 @@ export const fetchParticipants = async (): Promise<Participant[]> => {
     const response = await api.get('/api/participants');
     return response.data;
   };
+
+// Fetch participant by user ID
+export const fetchParticipantByUserId = async (userId: string): Promise<Participant> => {
+    const response = await api.get(`api/participants/user/${userId}`);
+    return response.data;
+  };

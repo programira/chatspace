@@ -3,6 +3,7 @@ import participantsReducer from './participantsSlice';
 import messagesReducer from './messagesSlice';
 import connectionReducer from './connectionSlice';
 import userReducer from './userSlice';
+import webSocketReducer from './webSocketSlice'; 
 
 export const store = configureStore({
   reducer: {
@@ -10,6 +11,7 @@ export const store = configureStore({
     messages: messagesReducer,         // Manages chat messages
     connection: connectionReducer,     // Manages WebSocket connection state
     user: userReducer,                 // Manages logged-in user state
+    webSocket: webSocketReducer,       // Manages WebSocket message handling
   },
 });
 

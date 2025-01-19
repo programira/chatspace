@@ -18,8 +18,8 @@ const Layout: React.FC<LayoutProps> = ({ theme, setTheme, userName }) => {
         width: '100vw', // Full viewport width
         display: 'flex',
         flexDirection: 'column', // Vertical stacking
-        backgroundColor: theme === 'light' ? '#f5f5f5' : '#303030', // Theme-based background
-        color: theme === 'light' ? '#000' : '#fff', // Theme-based text color
+        backgroundColor: (theme) => theme.palette.background.default,
+        color: (theme) => theme.palette.text.primary,
       }}
     >
       {/* Header */}

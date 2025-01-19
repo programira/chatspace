@@ -5,51 +5,48 @@ import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import { useDispatch } from 'react-redux';
 import { setUser } from '../../store/userSlice'; // Action to set user
 import { AppDispatch } from '../../store'; // Type for dispatch
-import { createUser } from '../../services/userService';
-import useWebSocket from '../../hooks/useWebSocket';
-import { WS_URL } from '../../config/constants';
+import { createUser, fetchParticipantByUserId } from '../../services/userService';
+import { sendWebSocketMessage } from '../../store/webSocketSlice';
 
 const Login: React.FC<{ onLogin: () => void }> = ({ onLogin }) => {
 	const [name, setName] = useState('');
 	const dispatch = useDispatch<AppDispatch>();
-	const { sendMessage } = useWebSocket(WS_URL);
 
-  const handleLogin = async () => {
-    if (!name.trim()) return;
+	const handleLogin = async () => {
+		if (!name.trim()) return;
 
-	try {
-		// Call the API to create the user
-		const user = await createUser(name);
-  
-		// Update Redux store with the logged-in user
-		dispatch(setUser(user));
-  
-		// Notify other participants via WebSocket
-		sendMessage({
-		  type: 'login',
-		  userId: user.id,
-		  userName: user.name,
-		});
-  
-		// Trigger the onLogin callback to navigate to the chat
-		onLogin();
-	  } catch (error) {
-		console.error('Login error:', error);
-	  }
+		try {
+			// Call the API to create the user
+			const user = await createUser(name);
+			// Fetch or create the Participant for this user
+			let participant = await fetchParticipantByUserId(user.id);
+			console.log('participant', participant);
+
+			// If no participant exists, create a new one on the frontend before sending WebSocket message
+			if (!participant) {
+				participant = {
+					id: user.id, // Temporary ID until assigned in DB
+					userId: user.id,
+					isActive: true,
+					joinedAt: new Date().toISOString(),
+					createdAt: new Date().toISOString(),
+					updatedAt: new Date().toISOString(),
+					user: { id: user.id, name: user.name }, // Include user info
+				};
+			}
+
+			// Update Redux store with the logged-in user
+			dispatch(setUser(user));
+
+			console.log('sending login message', user.id, user.name);
+			dispatch(sendWebSocketMessage('login', { userId: user.id, name: user.name, createdAt: user.createdAt, updatedAt: user.updatedAt }));
+
+			// Trigger the onLogin callback to navigate to the chat
+			onLogin();
+		} catch (error) {
+			console.error('Login error:', error);
+		}
 	};
-
-	// const handleLogin = () => {
-	// 	if (name.trim()) {
-	// 		dispatch(
-	// 			setUser({
-	// 				id: Date.now().toString(), // Generate a unique ID
-	// 				name: name.trim(),
-	// 				isActive: true,
-	// 			})
-	// 		);
-	// 		onLogin(); // Notify App that login is complete
-	// 	}
-	// };
 
 	return (
 		<Box

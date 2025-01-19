@@ -1,52 +1,9 @@
-// import { Server } from 'ws';
-// import { Server as HttpServer } from 'http';
-
-// let activeConnections: Set<string> = new Set();
-
-// export const setupWebSocket = (server: HttpServer) => {
-//   const wss = new Server({ server });
-
-//   wss.on('connection', (ws) => {
-//     console.log('New client connected.');
-
-//     // Generate a unique ID for the connection
-//     const connectionId = Date.now().toString();
-//     activeConnections.add(connectionId);
-
-//     // Send a welcome message
-//     ws.send(JSON.stringify({ type: 'welcome', message: 'Welcome to ChatSpace!' }));
-
-//     ws.on('message', (message) => {
-//       const parsedMessage = JSON.parse(message.toString());
-
-//       if (parsedMessage.type === 'newMessage') {
-//         // Broadcast the new message to all connected clients
-//         wss.clients.forEach((client) => {
-//           if (client !== ws && client.readyState === ws.OPEN) {
-//             client.send(JSON.stringify(parsedMessage));
-//           }
-//         });
-//       }
-//     });
-
-//     ws.on('close', () => {
-//       console.log('Client disconnected.');
-//       activeConnections.delete(connectionId);
-//     });
-//   });
-
-//   console.log('WebSocket server initialized.');
-// };
-
-import { Server, WebSocket } from 'ws';
-import { Server as HttpServer } from 'http';
-import { useEffect, useRef } from 'react';
-import { useDispatch } from 'react-redux';
-import { addParticipant, removeParticipant } from '../store/participantsSlice';
+import { Server, WebSocket } from "ws";
+import { Server as HttpServer } from "http";
 
 interface ActiveUser {
   userId: string;
-  userName: string;
+  name: string;
   ws: WebSocket;
 }
 
@@ -54,118 +11,168 @@ const activeUsers: ActiveUser[] = [];
 
 export const setupWebSocket = (server: HttpServer) => {
   const wss = new Server({ server });
-  const dispatch = useDispatch();
 
-  wss.on('connection', (ws) => {
-    console.log('New client connected.');
+  wss.on("connection", (ws, req) => {
+    const clientPort = req.socket.remotePort;
+    console.log("New client connected on port:", clientPort);
 
-    ws.on('message', (message) => {
+    ws.on("message", (message) => {
       try {
         const parsedMessage = JSON.parse(message.toString());
+        console.log("Received message:", parsedMessage);
 
         switch (parsedMessage.type) {
-          case 'login':
-            handleUserLogin(ws, parsedMessage.userId, parsedMessage.userName);
-            dispatch(addParticipant(parsedMessage.participant)); // TODO: Check this part
+          case "login":
+            handleUserLogin(
+              ws,
+              parsedMessage.data.userId,
+              parsedMessage.data.name,
+              parsedMessage.data.createdAt,
+              parsedMessage.data.updatedAt
+            );
             break;
 
-          case 'newMessage':
+          case "message:new":
             handleNewMessage(parsedMessage);
             break;
 
+          case "logout":
+            handleUserLogout(parsedMessage.data.userId, parsedMessage.data.name);
+            break;
+
           default:
-            console.warn('Unknown message type:', parsedMessage.type);
+            console.warn("Unknown message type:", parsedMessage.type);
         }
       } catch (error) {
-        console.error('Error parsing message:', error);
+        console.error("Error parsing message:", error);
       }
     });
 
-    ws.on('close', () => {
+    ws.on("close", () => {
       handleUserDisconnect(ws);
     });
   });
 
-  console.log('WebSocket server initialized.');
+  console.log("WebSocket server initialized.");
 };
 
-/**
- * Handle user login: Add the user to the activeUsers list and broadcast the login.
- */
-const handleUserLogin = (ws: WebSocket, userId: string, userName: string) => {
-  // Add the user to the activeUsers list
-  activeUsers.push({ userId, userName, ws });
+// Handle user login
+const handleUserLogin = (
+  ws: WebSocket,
+  userId: string,
+  name: string,
+  createdAt: string,
+  updatedAt: string
+) => {
+  console.log("User logged in:", userId, name);
+  activeUsers.push({ userId, name, ws });
 
-  console.log(`${userName} logged in.`);
+  console.log(`${name} logged in.`);
 
-  // Broadcast to all clients that a new user has joined
+  // Broadcast login message
   broadcastMessage({
-    type: 'userLoggedIn',
+    type: "userLoggedIn",
     userId,
-    userName,
+    name,
     joinedAt: new Date().toISOString(),
   });
 
-  // Broadcast a "Meetingbot" message to announce the login
+  // Broadcast "Meetingbot" message
   broadcastMessage({
-    type: 'newMessage',
-    senderId: 'Meetingbot',
-    userName: 'Meetingbot',
-    text: `${userName} joined the chat.`,
-    timestamp: new Date().toISOString(),
+    type: "newMessage",
+    senderId: "Meetingbot",
+    userId: "Meetingbot",
+    name: "Meetingbot",
+    text: `${name} joined the chat.`,
+    // timestamp: new Date().toISOString(),
+    createdAt: createdAt,
+    updatedAt: updatedAt,
+    id: `Meetingbot-${userId}`,
+  });
+};
+
+// Handle new message
+const handleNewMessage = (message: any) => {
+  broadcastMessage({
+    type: "newMessage",
+    userId: message.data.senderId, // This can be removed
+    senderId: message.data.senderId,
+    senderName: message.data.senderName,
+    text: message.data.text,
+    // timestamp: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  });
+};
+
+// Handle user logout
+const handleUserLogout = (userId: string, name: string) => {
+  activeUsers.splice(
+    activeUsers.findIndex((u) => u.userId === userId),
+    1
+  );
+
+  // Broadcast logout message
+  broadcastMessage({
+    type: "userLoggedOut",
+    userId,
+    name,
+  });
+
+  // Broadcast "Meetingbot" message
+  broadcastMessage({
+    type: "newMessage",
+    senderId: "Meetingbot",
+    userId: "Meetingbot",
+    name: "Meetingbot",
+    text: `${name} left the chat.`,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+
+    id: `Meetingbot-${userId}`,
+  });
+};
+
+
+// Broadcast messages to all clients
+const broadcastMessage = (message: any) => {
+  console.log("Broadcasting message:", message);
+  activeUsers.forEach((user) => {
+    if (user.ws.readyState === WebSocket.OPEN) {
+      user.ws.send(JSON.stringify(message));
+      console.log("Sent message to:", user.name);
+    }
   });
 };
 
 /**
- * Handle user disconnect: Remove the user from activeUsers and broadcast the logout.
+ * Handles user disconnection by removing them from the activeUsers list
+ * and broadcasting a logout event.
  */
 const handleUserDisconnect = (ws: WebSocket) => {
   const userIndex = activeUsers.findIndex((user) => user.ws === ws);
   if (userIndex !== -1) {
     const disconnectedUser = activeUsers[userIndex];
-    activeUsers.splice(userIndex, 1); // Remove the user from the activeUsers list
+    activeUsers.splice(userIndex, 1); // Remove the user from activeUsers list
 
-    console.log(`${disconnectedUser.userName} disconnected.`);
+    console.log(`${disconnectedUser.name} disconnected.`);
 
     // Broadcast to all clients that the user has left
     broadcastMessage({
-      type: 'userLoggedOut',
+      type: "userLoggedOut",
       userId: disconnectedUser.userId,
-      userName: disconnectedUser.userName,
+      name: disconnectedUser.name,
+    });
+
+    // Broadcast "Meetingbot" message
+    broadcastMessage({
+      type: "newMessage",
+      senderId: "Meetingbot",
+      name: "Meetingbot",
+      text: `${disconnectedUser.name} left the chat.`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      id: `Meetingbot-${disconnectedUser.name}`,
     });
   }
-};
-
-/**
- * Handle a new chat message: Broadcast it to all connected clients.
- */
-const handleNewMessage = (message: any) => {
-  const { userId, text } = message;
-
-  // Find the sender's name
-  const sender = activeUsers.find((user) => user.userId === userId);
-  if (!sender) {
-    console.warn('Sender not found:', userId);
-    return;
-  }
-
-  // Broadcast the new message to all clients
-  broadcastMessage({
-    type: 'newMessage',
-    userId: sender.userId,
-    userName: sender.userName,
-    text,
-    timestamp: new Date().toISOString(),
-  });
-};
-
-/**
- * Broadcast a message to all connected clients.
- */
-const broadcastMessage = (message: any) => {
-  activeUsers.forEach((user) => {
-    if (user.ws.readyState === WebSocket.OPEN) {
-      user.ws.send(JSON.stringify(message));
-    }
-  });
 };

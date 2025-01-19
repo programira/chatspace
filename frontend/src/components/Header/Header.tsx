@@ -1,11 +1,10 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Box, Typography, Select, MenuItem, FormControl, InputLabel, OutlinedInput, Button } from '@mui/material';
 import { useDispatch, useSelector } from 'react-redux';
 import { clearUser } from '../../store/userSlice';
 import { AppDispatch, RootState } from '../../store';
 import { logoutUser } from '../../services/userService';
-import { WS_URL } from '../../config/constants';
-import useWebSocket from '../../hooks/useWebSocket';
+import { sendWebSocketMessage } from '../../store/webSocketSlice';
 
 interface HeaderProps {
   theme: string;
@@ -17,10 +16,8 @@ const Header: React.FC<HeaderProps> = ({ theme, setTheme }) => {
   const dispatch = useDispatch<AppDispatch>();
   // Retrieve the current user from the Redux store
   const currentUser = useSelector((state: RootState) => state.user.currentUser);
-  const { sendMessage } = useWebSocket(WS_URL);
-
   console.log(currentUser);
-  
+
   const handleLogout = async () => {
 
   if (!currentUser?.id) {
@@ -31,25 +28,39 @@ const Header: React.FC<HeaderProps> = ({ theme, setTheme }) => {
     try {
       // Call the logout service
       await logoutUser(currentUser.id);
-  
       // Clear user from Redux store
       dispatch(clearUser());
+      dispatch(sendWebSocketMessage('logout', { userId: currentUser.id, name: currentUser.name }));
   
-      // Optionally, you can add a WebSocket message to notify others
-      sendMessage({
-        type: 'userLoggedOut',
-        userId: currentUser.id,
-        userName: currentUser.name,
-      });
     } catch (error) {
       console.error('Logout failed:', error);
     }
   };
   
+  // ✅ Detect page refresh and logout
+  useEffect(() => {
+    const handleBeforeUnload = async () => {
+      if (currentUser?.id) {
+        await logoutUser(currentUser.id);
+        dispatch(sendWebSocketMessage('logout', { userId: currentUser.id, name: currentUser.name }));
+        dispatch(clearUser());
+        
+      }
+    };
 
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [currentUser, dispatch]);
+  
   return (
     <Box
       sx={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 1000,
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',

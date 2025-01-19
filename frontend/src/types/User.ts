@@ -1,5 +1,7 @@
 export interface User {
   id: string;
   name: string;
-  isActive: boolean;
+  // isActive: boolean; // moved to Participant (session)
+  createdAt: string;
+  updatedAt: string;
 }

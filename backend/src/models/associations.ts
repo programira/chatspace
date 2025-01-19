@@ -4,10 +4,10 @@ import { Participant } from './Participant';
 import { Connection } from './Connection';
 
 export function defineAssociations() {
-  User.hasMany(Message, { foreignKey: 'userId', as: 'userMessages' });
+  // User.hasMany(Message, { foreignKey: 'userId', as: 'userMessages' });
   User.hasMany(Connection, { foreignKey: 'userId', as: 'userConnections' });
 
-  Message.belongsTo(User, { foreignKey: 'userId', as: 'messageSender' });
+  Message.belongsTo(User, { foreignKey: 'senderId', as: 'messageSender' });
   Participant.belongsTo(User, { foreignKey: 'userId', as: 'user' });
   Connection.belongsTo(User, { foreignKey: 'userId', as: 'connectionUser' });
 }

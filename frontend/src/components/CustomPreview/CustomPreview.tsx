@@ -1,39 +1,68 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { Box, Typography, Paper } from '@mui/material';
+import { LINK_PREVIEW_API_KEY } from '../../config/constants';
 
-interface PreviewProps {
-  title: string;
-  description: string;
-  image: string;
+interface CustomPreviewProps {
   url: string;
 }
 
-const CustomPreview: React.FC<PreviewProps> = ({ title, description, image, url }) => {
+const CustomPreview: React.FC<CustomPreviewProps> = ({ url }) => {
+  const [preview, setPreview] = useState<{ title: string; description: string; image: string } | null>(null);
+  const [isHovered, setIsHovered] = useState(false);
+
+  useEffect(() => {
+    const fetchMetadata = async () => {
+      try {
+        const response = await fetch(`https://api.linkpreview.net/?key=${LINK_PREVIEW_API_KEY}&q=${url}`);
+        const data = await response.json();
+        setPreview({
+          title: data.title,
+          description: data.description,
+          image: data.image,
+        });
+      } catch (error) {
+        console.error('Failed to fetch preview:', error);
+      }
+    };
+
+    fetchMetadata();
+  }, [url]);
+
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'start',
-        padding: '10px',
-        border: '1px solid #ccc',
-        borderRadius: '8px',
-        backgroundColor: '#f9f9f9',
-        width: '300px',
-      }}
+    <Box
+      component="span"
+      sx={{ position: 'relative', display: 'inline-block' }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
-      {image && (
-        <img
-          src={image}
-          alt={title}
-          style={{ width: '100%', borderRadius: '5px', marginBottom: '10px' }}
-        />
-      )}
-      <strong style={{ fontSize: '16px', marginBottom: '5px' }}>{title}</strong>
-      <p style={{ fontSize: '14px', color: '#555', marginBottom: '10px' }}>{description}</p>
-      <a href={url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '14px', color: '#007bff' }}>
-        Visit
+      <a href={url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline', color: '#1976d2' }}>
+        {url}
       </a>
-    </div>
+      {isHovered && preview && (
+        <Paper
+          sx={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            width: 250,
+            padding: 1,
+            boxShadow: 3,
+            backgroundColor: '#fff',
+            zIndex: 10,
+          }}
+        >
+          {preview.image && (
+            <img src={preview.image} alt={preview.title} style={{ width: '100%', borderRadius: 4 }} />
+          )}
+          <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mt: 1 }}>
+            {preview.title}
+          </Typography>
+          <Typography variant="body2" sx={{ fontSize: '0.85rem', color: 'gray' }}>
+            {preview.description}
+          </Typography>
+        </Paper>
+      )}
+    </Box>
   );
 };
 
