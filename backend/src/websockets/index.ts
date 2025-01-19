@@ -22,7 +22,7 @@ export const setupWebSocket = (server: HttpServer) => {
         console.log("Received message:", parsedMessage);
 
         switch (parsedMessage.type) {
-          case "login":
+          case "login": // change to userLoggedIn
             handleUserLogin(
               ws,
               parsedMessage.data.userId,
