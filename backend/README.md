@@ -124,6 +124,24 @@ Ensure your PostgreSQL service is running locally.
 3. Connect to the server and verify your database.
 
 ---
+## **Running the Applidation**
+
+1. Start the development server:
+  ```bash
+  pnpm dev
+  ```
+1. The server should be running on
+  ```bash
+  http://localhost:3000
+  ```  
+---
+## **API Documentation**
+
+1. Open your browser and navigate to:
+  ```bash
+  http://localhost:3000/api-docs
+  ```
+---
 
 ## **Technologies Used**
 
