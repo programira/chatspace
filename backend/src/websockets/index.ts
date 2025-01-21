@@ -106,6 +106,7 @@ const handleNewMessage = (message: any) => {
     // timestamp: new Date().toISOString(),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
+    id: message.data.id,
   });
 };
 
@@ -120,6 +121,7 @@ const handleEditMessage = (message: any) => {
     // timestamp: new Date().toISOString(),
     createdAt: message.data.createdAt,
     updatedAt: message.data.updatedAt,
+    id: message.data.id,
   });
 };
 

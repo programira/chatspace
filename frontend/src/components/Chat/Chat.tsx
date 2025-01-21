@@ -85,8 +85,12 @@ const Chat: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (!currentUser) return;
     const updatedMessage = await deleteMessage(id, currentUser.id);
-    dispatch(updateMessage(updatedMessage));
-    dispatch(sendWebSocketMessage('message:delete', updatedMessage));
+    const formattedMsg = {
+      ...updatedMessage,
+      senderName: currentUser.name,
+    };
+    dispatch(updateMessage(formattedMsg));
+    dispatch(sendWebSocketMessage('message:edit', formattedMsg)); // Broadcasting it as an edit cause basacally thats how delete works here :)
   };
 
   // Cancel editing when pressing ESC
