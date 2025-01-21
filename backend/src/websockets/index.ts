@@ -36,6 +36,10 @@ export const setupWebSocket = (server: HttpServer) => {
             handleNewMessage(parsedMessage);
             break;
 
+            case "message:edit":
+              handleEditMessage(parsedMessage);
+              break;  
+
           case "logout":
             handleUserLogout(parsedMessage.data.userId, parsedMessage.data.name);
             break;
@@ -102,6 +106,20 @@ const handleNewMessage = (message: any) => {
     // timestamp: new Date().toISOString(),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
+  });
+};
+
+// Handle new message
+const handleEditMessage = (message: any) => {
+  broadcastMessage({
+    type: "message:edit",
+    userId: message.data.senderId, // This can be removed
+    senderId: message.data.senderId,
+    senderName: message.data.senderName,
+    text: message.data.text,
+    // timestamp: new Date().toISOString(),
+    createdAt: message.data.createdAt,
+    updatedAt: message.data.updatedAt,
   });
 };
 

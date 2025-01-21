@@ -54,9 +54,12 @@ const Chat: React.FC = () => {
     if (editingMessageId) {
       // Editing existing message
       const updatedMessage = await editMessage(editingMessageId, messageInput, currentUser.id);
-      dispatch(updateMessage(updatedMessage));
-      // sendMessage('message:edit', updatedMessage);
-      dispatch(sendWebSocketMessage('message:edit', updatedMessage));
+      const formattedMsg = {
+        ...updatedMessage,
+        senderName: currentUser.name,
+      };
+      dispatch(updateMessage(formattedMsg));
+      dispatch(sendWebSocketMessage('message:edit', formattedMsg));
       setEditingMessageId(null);
     } else {
       // Sending new message

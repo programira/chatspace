@@ -97,8 +97,16 @@ export const initializeWebSocket =
         }
 
         case 'message:edit':
-          dispatch(updateMessage(message.data));
-          break;
+            { const formattedMessage: Message = {
+                id: message.id,
+                senderId: message.senderId,
+                text: message.text,
+                createdAt: message.createdAt,
+                updatedAt: message.updatedAt,
+                senderName: message.senderName,
+              };
+          dispatch(updateMessage(formattedMessage));
+          break; }
 
         case 'message:delete':
           dispatch(removeMessage(message.data));
