@@ -3,6 +3,8 @@ import { AppDispatch, RootState } from './index';
 import { addMessage, updateMessage, removeMessage } from './messagesSlice';
 import { WS_URL } from '../config/constants';
 import { Message } from '../types/Message';
+import { setParticipants } from './participantsSlice';
+import { fetchParticipants } from '../services/userService';
 
 interface WebSocketState {
   isConnected: boolean;
@@ -51,7 +53,7 @@ export const initializeWebSocket =
       dispatch(setConnected());
     };
 
-    ws.onmessage = event => {
+    ws.onmessage = async event => {
       const message = JSON.parse(event.data);
       console.log('Received WebSocket message:', message);
 
@@ -64,15 +66,21 @@ export const initializeWebSocket =
       }
 
       switch (message.type) {
-        case 'userLoggedIn':
+        case 'userLoggedIn': {
           console.log('message.type userLoggedIn ', message);
+          const participants = await fetchParticipants();
+          dispatch(setParticipants(participants));
           dispatch(setConnected());
           break;
+        }
 
-        case 'userLoggedOut':
-            console.log('message.type userLoggedOut ', message);
-            dispatch(setConnected());
+        case 'userLoggedOut': {
+          console.log('message.type userLoggedOut ', message);
+          const participants = await fetchParticipants();
+          dispatch(setParticipants(participants));
+          dispatch(setConnected());
           break;
+        }
 
         case 'newMessage': {
           const formattedMessage: Message = {
@@ -81,7 +89,7 @@ export const initializeWebSocket =
             text: message.text,
             createdAt: message.createdAt,
             updatedAt: message.updatedAt,
-            senderName: message.senderName
+            senderName: message.senderName,
           };
 
           dispatch(addMessage(formattedMessage));
