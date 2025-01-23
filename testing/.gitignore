@@ -1,0 +1,23 @@
+# Playwright Test Reports
+playwright-report/
+test-results/
+
+# Playwright Traces (if enabled)
+*.trace.zip
+
+# Playwright Screenshots
+*.png
+*.jpg
+
+# Playwright Videos (if enabled)
+*.webm
+*.mp4
+
+# Node Modules (if you have a separate package.json for testing)
+node_modules/
+.pnpm-store/
+pnpm-lock.yaml
+
+# Temporary Files
+.DS_Store  # macOS
+Thumbs.db  # Windows

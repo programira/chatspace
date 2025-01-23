@@ -202,6 +202,7 @@ const Chat: React.FC = () => {
               />
             ) : (
               <Typography
+                data-testid={`message-${message.id}`}
                 variant="body2"
                 sx={{
                   fontStyle: message.senderId === 'Meetingbot' ? 'italic' : 'normal',
