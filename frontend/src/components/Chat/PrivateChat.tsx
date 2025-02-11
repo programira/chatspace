@@ -15,7 +15,7 @@ import { sendWebSocketMessage } from '../../store/webSocketSlice';
 
 const gf = new GiphyFetch(GIPHY_API_KEY);
 
-const Chat: React.FC = () => {
+const PrivateChat: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { currentUser, isLoggedIn } = useSelector((state: RootState) => state.user);
   const messages: Message[] = useSelector((state: RootState) => state.messages.list);
@@ -154,7 +154,7 @@ const Chat: React.FC = () => {
           paddingBottom: '80px',
         }}
       >
-        <Typography variant="h6">Group Chat</Typography>
+        <Typography variant="h6">Private Chat</Typography>
         {messages.map((message) => (
           <Box
             key={message.id}
@@ -313,4 +313,4 @@ const Chat: React.FC = () => {
   );
 };
 
-export default Chat;
+export default PrivateChat;

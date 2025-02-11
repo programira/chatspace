@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { Box, Typography, List, ListItem, ListItemText, ListItemIcon, Avatar,  } from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import { Box, Typography, List, ListItem, ListItemText, ListItemIcon, Avatar, ListItemButton,  } from '@mui/material';
 import CircleIcon from '@mui/icons-material/Circle';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../store';
@@ -7,12 +7,16 @@ import { Participant } from '../../types/Participant';
 import { fetchParticipants } from '../../services/userService';
 import { setParticipants } from '../../store/participantsSlice';
 import { selectWebSocketState } from '../../store/webSocketSlice';
+import { setSelectedUser } from '../../store/userSlice';
 
 const Participants: React.FC = () => {
   const dispatch = useDispatch();
   const participants: Participant[] = useSelector((state: RootState) => state.participants.list); // Get participants from Redux
   const currentUser = useSelector((state: RootState) => state.user.currentUser); // Get the logged-in user
   const { isConnected } = useSelector(selectWebSocketState); 
+   // State to track selected participant
+   // const [selectedUserId, setSelectedUserId] = useState<string | null>(currentUser?.id || null);
+
   
   useEffect(() => {
     const loadParticipants = async () => {
@@ -26,6 +30,13 @@ const Participants: React.FC = () => {
 
     loadParticipants();
   }, [dispatch, isConnected]);  
+
+  const onSelectUser = (userId: string | null) => {
+    dispatch(setSelectedUser(userId));
+    console.log('Selected user:', userId);
+  };
+
+  
 
   return (
     <Box
@@ -48,6 +59,7 @@ const Participants: React.FC = () => {
 
       {/* Participants List */}
       <List
+      component="nav"
       sx={{
         flexGrow: 1,
         overflowY: 'auto', // Enables scrolling
@@ -55,14 +67,16 @@ const Participants: React.FC = () => {
       }}
       >
         {participants.map(participant => (
-          <ListItem
+          <ListItemButton
             key={participant.id}
             sx={{
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              padding: '8px 0',
+             padding: '8px 0',
+              // cursor: 'pointer',
             }}
+            onClick={() => onSelectUser(participant.userId === currentUser?.id ? null : participant.userId)}
           >
             {/* User Name */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -83,7 +97,7 @@ const Participants: React.FC = () => {
                 }}
               />
             </ListItemIcon>
-          </ListItem>
+          </ListItemButton>
         ))}
       </List>
     </Box>

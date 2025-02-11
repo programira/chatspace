@@ -4,11 +4,13 @@ import { User } from '../types/User';
 interface UserState {
   currentUser: User | null;
   isLoggedIn: boolean;
+  selectedUser: string | null;
 }
 
 const initialState: UserState = {
   currentUser: null,
   isLoggedIn: false,
+  selectedUser: null,
 };
 
 const userSlice = createSlice({
@@ -23,9 +25,15 @@ const userSlice = createSlice({
       state.currentUser = null;
       state.isLoggedIn = false; // Reset login state
     },
+    setSelectedUser: (state, action: PayloadAction<string | null>) => {
+      state.selectedUser = action.payload;
+    },
+    clearSelectedUser: (state) => {
+      state.selectedUser = null;
+    },
   },
 });
 
-export const { setUser, clearUser } = userSlice.actions;
+export const { setUser, clearUser, setSelectedUser, clearSelectedUser } = userSlice.actions;
 
 export default userSlice.reducer;
