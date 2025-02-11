@@ -10,6 +10,13 @@ export class Message extends Model {
   @Column({ type: DataType.INTEGER, allowNull: false })
   senderId!: number;
 
+  @ForeignKey(() => User)
+  @Column({ type: DataType.INTEGER, allowNull: true })
+  receiverId!: number | null;
+
   @BelongsTo(() => User, { as: 'messageAuthor' }) 
   sender!: User;
+
+  @BelongsTo(() => User, { as: 'messageRecipient' }) 
+  receiver!: User | null;
 }

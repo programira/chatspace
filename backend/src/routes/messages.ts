@@ -63,6 +63,7 @@ router.get('/', async (req: Request, res: Response) : Promise<any> => {
   
   try {
     const messages = await Message.findAll({ 
+      where: { receiverId: null }, // Only fetch group messages
       include: [
         {
           model: User,
@@ -78,6 +79,54 @@ router.get('/', async (req: Request, res: Response) : Promise<any> => {
     
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch messages' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/messages/private/{userId}/{receiverId}:
+ *   get:
+ *     summary: Get private messages between two users
+ *     tags:
+ *       - Messages
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of one of the users
+ *       - in: path
+ *         name: receiverId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the other user
+ *     responses:
+ *       200:
+ *         description: List of private messages between the two users
+ *       500:
+ *         description: Error fetching messages
+ */
+router.get('/private/:userId/:receiverId', async (req: Request, res: Response) => {
+  try {
+    const { userId, receiverId } = req.params;
+
+    const messages = await Message.findAll({
+      where: {
+        senderId: [userId, receiverId],
+        receiverId: [userId, receiverId],
+      },
+      include: [
+        { model: User, as: 'messageSender', attributes: ['name'] },
+        { model: User, as: 'messageReceiver', attributes: ['name'] },
+      ],
+      order: [['createdAt', 'ASC']],
+    });
+
+    res.json(messages);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch private messages' });
   }
 });
 
@@ -104,8 +153,12 @@ router.get('/', async (req: Request, res: Response) : Promise<any> => {
  */
 router.post('/', async (req, res) => {
   try {
-    const { text, senderId } = req.body;
-    const message = await Message.create({ text, senderId });
+    const { text, senderId, receiverId } = req.body;
+    const message = await Message.create({ 
+      text, 
+      senderId, 
+      receiverId: receiverId || null, // Default to null for group messages 
+    });
     res.status(201).json(message);
   } catch (error) {
     res.status(500).json({ error: 'Failed to create message' });
