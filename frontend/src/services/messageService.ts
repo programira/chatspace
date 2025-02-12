@@ -26,6 +26,12 @@ export const createMessage = async (text: string, senderId: string): Promise<Mes
   return response.data;
 };
 
+// Create a new message
+export const createPrivateMessage = async (text: string, senderId: string, receiverId: string): Promise<Message> => {
+  const response = await api.post('/api/messages', { text, senderId, receiverId });
+  return response.data;
+};
+
 // Edit an existing message
 export const editMessage = async (id: string, newText: string, senderId: string): Promise<Message> => {
   const response = await api.put(`/api/messages/${id}`, { text: newText, senderId });
@@ -42,5 +48,11 @@ export const deleteMessage = async (id: string, senderId: string): Promise<Messa
 export const fetchRecentMessages = async (): Promise<Message[]> => {
     const response = await api.get('/api/messages?limit=5'); // Adjust limit as needed
     return response.data;
-  };
+};
+
+// Fetch private messages between a user and receiver
+export const fetchPrivateMessages = async (userId: string, receiverId: string): Promise<Message[]> => {
+    const response = await api.get(`/api/messages/private/${userId}/${receiverId}`);
+    return response.data;
+};
   

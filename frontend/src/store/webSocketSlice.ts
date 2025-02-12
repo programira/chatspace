@@ -90,6 +90,7 @@ export const initializeWebSocket =
             createdAt: message.createdAt,
             updatedAt: message.updatedAt,
             senderName: message.senderName,
+            receiverId: message.receiverId,
           };
 
           dispatch(addMessage(formattedMessage));

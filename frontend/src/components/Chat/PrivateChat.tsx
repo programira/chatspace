@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Box, Typography, TextField, Button, IconButton } from '@mui/material';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../../store';
-import { fetchRecentMessages, createMessage, editMessage, deleteMessage } from '../../services/messageService';
+import { fetchPrivateMessages, createPrivateMessage, editMessage, deleteMessage } from '../../services/messageService';
 import { setMessages, addMessage, updateMessage } from '../../store/messagesSlice';
 import { Message } from '../../types/Message';
 import CustomPreview from '../CustomPreview/CustomPreview';
@@ -14,8 +14,11 @@ import { GIPHY_API_KEY } from '../../config/constants';
 import { sendWebSocketMessage } from '../../store/webSocketSlice';
 
 const gf = new GiphyFetch(GIPHY_API_KEY);
+interface PrivateChatProps {
+  selectedUser: string | null; // The ID of the user we are chatting with
+}
 
-const PrivateChat: React.FC = () => {
+const PrivateChat: React.FC<PrivateChatProps> = ({ selectedUser }) => {
   const dispatch = useDispatch<AppDispatch>();
   const { currentUser, isLoggedIn } = useSelector((state: RootState) => state.user);
   const messages: Message[] = useSelector((state: RootState) => state.messages.list);
@@ -37,18 +40,20 @@ const PrivateChat: React.FC = () => {
 
   // Fetch messages when the chat session starts
   useEffect(() => {
+    if (!selectedUser || !currentUser) return;
+
     const loadMessages = async () => {
-      const messagesFromApi = await fetchRecentMessages();
+      const messagesFromApi = await fetchPrivateMessages(currentUser.id, selectedUser);
       dispatch(setMessages(messagesFromApi));
     };
 
     loadMessages();
 
-  }, [dispatch]);
+  }, [dispatch, selectedUser, currentUser]);
 
   // Send or edit message
   const handleSend = async () => {
-    if (!messageInput.trim() || !currentUser) return;
+    if (!messageInput.trim() || !currentUser|| !selectedUser) return;
 
     if (editingMessageId) {
       // Editing existing message
@@ -61,8 +66,8 @@ const PrivateChat: React.FC = () => {
       dispatch(sendWebSocketMessage('message:edit', formattedMsg));
       setEditingMessageId(null);
     } else {
-      // Sending new message
-      const newMsg = await createMessage(messageInput, currentUser.id);
+      // Sending new message with receiverId
+      const newMsg = await createPrivateMessage(messageInput, currentUser.id, selectedUser);
       const formattedMsg = {
         ...newMsg,
         senderName: currentUser.name,
@@ -175,9 +180,7 @@ const PrivateChat: React.FC = () => {
               }}
             >
               <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                {message.senderId === 'Meetingbot'
-                  ? 'Meetingbot'
-                  : message.senderId === currentUser?.id
+                {message.senderId === currentUser?.id
                     ? 'You'
                     : message.senderName || message.messageSender?.name}
               </Typography>

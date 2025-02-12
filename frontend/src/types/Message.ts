@@ -8,4 +8,5 @@ export interface Message {
   messageSender?: {
     name: string;
   }
+  receiverId?: string;
 }

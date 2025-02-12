@@ -14,9 +14,6 @@ const Participants: React.FC = () => {
   const participants: Participant[] = useSelector((state: RootState) => state.participants.list); // Get participants from Redux
   const currentUser = useSelector((state: RootState) => state.user.currentUser); // Get the logged-in user
   const { isConnected } = useSelector(selectWebSocketState); 
-   // State to track selected participant
-   // const [selectedUserId, setSelectedUserId] = useState<string | null>(currentUser?.id || null);
-
   
   useEffect(() => {
     const loadParticipants = async () => {
