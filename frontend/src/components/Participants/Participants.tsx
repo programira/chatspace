@@ -1,12 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { Box, Typography, List, ListItem, ListItemText, ListItemIcon, Avatar, ListItemButton,  } from '@mui/material';
+import React, { useEffect } from 'react';
+import { Box, Typography, List, ListItemText, ListItemIcon, Avatar, ListItemButton, Badge } from '@mui/material';
 import CircleIcon from '@mui/icons-material/Circle';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../store';
 import { Participant } from '../../types/Participant';
 import { fetchParticipants } from '../../services/userService';
 import { setParticipants } from '../../store/participantsSlice';
-import { selectWebSocketState } from '../../store/webSocketSlice';
+import { selectWebSocketState, clearNewMessage, selectNewMessages } from '../../store/webSocketSlice';
 import { setSelectedUser } from '../../store/userSlice';
 
 const Participants: React.FC = () => {
@@ -14,6 +14,7 @@ const Participants: React.FC = () => {
   const participants: Participant[] = useSelector((state: RootState) => state.participants.list); // Get participants from Redux
   const currentUser = useSelector((state: RootState) => state.user.currentUser); // Get the logged-in user
   const { isConnected } = useSelector(selectWebSocketState); 
+  const newMessages = useSelector(selectNewMessages);
   
   useEffect(() => {
     const loadParticipants = async () => {
@@ -31,9 +32,11 @@ const Participants: React.FC = () => {
   const onSelectUser = (userId: string | null) => {
     dispatch(setSelectedUser(userId));
     console.log('Selected user:', userId);
+    // Clear "NEW" label when opening chat
+    if (userId) {
+      dispatch(clearNewMessage(userId));
+    }
   };
-
-  
 
   return (
     <Box
@@ -81,7 +84,26 @@ const Participants: React.FC = () => {
                 {participant.user.name.charAt(0)} {/* Display first letter of the name */}
               </Avatar>
               <ListItemText
-                primary={participant.userId === currentUser?.id ? `${currentUser.name} (You)` : participant.user.name}
+              primary={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    {participant.userId === currentUser?.id ? `${currentUser.name} (You)` : participant.user.name}
+                    
+                    {/* Show "NEW" label if there are unread messages */}
+                    {newMessages[participant.userId] && (
+                      <Badge
+                        sx={{
+                          backgroundColor: 'black',
+                          color: 'white',
+                          fontSize: '0.8rem',
+                          padding: '2px 6px',
+                          borderRadius: '10px',
+                        }}
+                      >
+                        NEW
+                      </Badge>
+                    )}
+                  </Box>
+                }
               />
             </Box>
 

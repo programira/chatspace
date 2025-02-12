@@ -97,17 +97,23 @@ const handleUserLogin = (
 
 // Handle new message
 const handleNewMessage = (message: any) => {
-  broadcastMessage({
+  const broadcastData: any = {
     type: "newMessage",
-    userId: message.data.senderId, // This can be removed
+    userId: message.data.senderId,
     senderId: message.data.senderId,
     senderName: message.data.senderName,
     text: message.data.text,
-    // timestamp: new Date().toISOString(),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     id: message.data.id,
-  });
+  };
+
+  // Only include receiverId if it exists
+  if (message.data.receiverId) {
+    broadcastData.receiverId = message.data.receiverId;
+  }
+
+  broadcastMessage(broadcastData);
 };
 
 // Handle new message

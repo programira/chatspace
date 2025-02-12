@@ -9,11 +9,13 @@ import { fetchParticipants } from '../services/userService';
 interface WebSocketState {
   isConnected: boolean;
   error: string | null;
+  newMessages: Record<string, boolean>; // Track unread messages per user
 }
 
 const initialState: WebSocketState = {
   isConnected: false,
   error: null,
+  newMessages: {}, // Initially, no unread messages
 };
 
 let ws: WebSocket | null = null;
@@ -32,11 +34,17 @@ const webSocketSlice = createSlice({
     setError: (state, action: PayloadAction<string>) => {
       state.error = action.payload;
     },
+    markNewMessage: (state, action: PayloadAction<string>) => {
+      state.newMessages[action.payload] = true; // Mark sender as having unread messages
+    },
+    clearNewMessage: (state, action: PayloadAction<string>) => {
+      delete state.newMessages[action.payload]; // Remove "NEW" when chat is opened
+    },
   },
 });
 
 // Actions
-export const { setConnected, setDisconnected, setError } =
+export const { setConnected, setDisconnected, setError, markNewMessage, clearNewMessage } =
   webSocketSlice.actions;
 
 // WebSocket Thunk (to manage connection globally)
@@ -58,12 +66,19 @@ export const initializeWebSocket =
       console.log('Received WebSocket message:', message);
 
       const currentUser = getState().user.currentUser; // Get current user from Redux
+      const selectedUser = getState().user.selectedUser;
 
       // Skip processing messages sent by the current user
       if (currentUser && message.senderId === currentUser.id) {
         console.log('Skipping message from current user:', message);
         return;
       }
+
+        // ✅ Skip messages not meant for the current user
+  if (message.receiverId && message.receiverId !== currentUser?.id) {
+    console.log('Skipping message not meant for the current user:', message);
+    return;
+  }
 
       switch (message.type) {
         case 'userLoggedIn': {
@@ -94,6 +109,10 @@ export const initializeWebSocket =
           };
 
           dispatch(addMessage(formattedMessage));
+          // If the message is for the current user and they are NOT in chat with sender, mark as new
+          if (formattedMessage.receiverId === currentUser?.id && selectedUser !== formattedMessage.senderId) {
+            dispatch(markNewMessage(formattedMessage.senderId));
+          }
           break;
         }
 
@@ -139,5 +158,8 @@ export const sendWebSocketMessage = (type: string, data: unknown) => () => {
 
 // Selector to check WebSocket state
 export const selectWebSocketState = (state: RootState) => state.webSocket;
+
+// Selector to get unread messages
+export const selectNewMessages = (state: RootState) => state.webSocket.newMessages;
 
 export default webSocketSlice.reducer;

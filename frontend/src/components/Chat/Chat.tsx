@@ -46,6 +46,9 @@ const Chat: React.FC = () => {
 
   }, [dispatch]);
 
+  // Filter out all messages that have receiverId (private messages), cause we don't want to show them in the group chat
+  const filteredMessages = messages.filter((message) => !message.receiverId);
+
   // Send or edit message
   const handleSend = async () => {
     if (!messageInput.trim() || !currentUser) return;
@@ -155,7 +158,7 @@ const Chat: React.FC = () => {
         }}
       >
         <Typography variant="h6">Group Chat</Typography>
-        {messages.map((message) => (
+        {filteredMessages.map((message) => (
           <Box
             key={message.id}
             sx={{
