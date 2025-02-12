@@ -31,6 +31,9 @@ const Layout: React.FC<LayoutProps> = ({ theme, setTheme }) => {
       setOpenChats(prevChats => [...prevChats, { id: selectedUser, name: selectedUserName || 'Unknown' }]);
       setActiveTab(selectedUser);
     }
+    if (selectedUser) {
+      setActiveTab(selectedUser); // Auto-select tab when clicking different user
+    }
   }, [selectedUser, selectedUserName]);
 
   // Update `selectedUser` when switching between group and private chats
