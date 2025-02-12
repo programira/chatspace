@@ -29,7 +29,7 @@ const Layout: React.FC<LayoutProps> = ({ theme, setTheme }) => {
       setOpenChats(prevChats => [...prevChats, { id: selectedUser, name: selectedUserName || 'Unknown' }]);
       setActiveTab(selectedUser);
     }
-  }, [selectedUser, selectedUserName, openChats]);
+  }, [selectedUser, selectedUserName]);
 
   // Close a chat tab
   const handleCloseChat = (chatId: string) => {
