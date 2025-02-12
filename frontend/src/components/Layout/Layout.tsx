@@ -8,6 +8,7 @@ import Chat from '../Chat/Chat';
 import CloseIcon from '@mui/icons-material/Close';
 import PrivateChat from '../Chat/PrivateChat';
 import { setSelectedUser } from '../../store/userSlice';
+import { clearNewMessage } from '../../store/webSocketSlice';
 
 interface LayoutProps {
   theme: string;
@@ -22,6 +23,7 @@ const Layout: React.FC<LayoutProps> = ({ theme, setTheme }) => {
   const selectedUser = useSelector((state: RootState) => state.user.selectedUser);
   const participantsList = useSelector((state: RootState) => state.participants.list);
   const selectedUserName = participantsList.find(p => String(p.userId) === String(selectedUser))?.user.name || 'Unknown';
+  const newMessages = useSelector((state: RootState) => state.webSocket.newMessages); // ✅ Get users with unread messages
 
   // Open a new tab when `selectedUser` is updated
   useEffect(() => {
@@ -44,6 +46,10 @@ const Layout: React.FC<LayoutProps> = ({ theme, setTheme }) => {
       dispatch(setSelectedUser(null)); // Clear `selectedUser` when switching to group chat
     } else {
       dispatch(setSelectedUser(newTab)); // Set `selectedUser` to the selected private chat user
+
+      if (newMessages[newTab]) {
+        dispatch(clearNewMessage(newTab)); // Clear badge from the Participants when we open the chat with that specific user
+      }
     }
   };
 
