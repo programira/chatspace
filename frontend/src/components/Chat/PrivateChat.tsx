@@ -51,6 +51,13 @@ const PrivateChat: React.FC<PrivateChatProps> = ({ selectedUser }) => {
 
   }, [dispatch, selectedUser, currentUser]);
 
+  // Filter messages: Show only messages where senderId or receiverId matches selectedUser, meaning I dont want to see messages between other users
+  const filteredMessages = messages.filter(
+    (message) =>
+      (message.senderId === selectedUser && message.receiverId === currentUser?.id) ||
+      (message.receiverId === selectedUser && message.senderId === currentUser?.id)
+  );
+
   // Send or edit message
   const handleSend = async () => {
     if (!messageInput.trim() || !currentUser|| !selectedUser) return;
@@ -160,7 +167,7 @@ const PrivateChat: React.FC<PrivateChatProps> = ({ selectedUser }) => {
         }}
       >
         <Typography variant="h6">Private Chat</Typography>
-        {messages.map((message) => (
+        {filteredMessages.map((message) => (
           <Box
             key={message.id}
             sx={{

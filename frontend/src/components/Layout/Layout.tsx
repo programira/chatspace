@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { Box, Tabs, Tab, IconButton } from '@mui/material';
 import Header from '../Header/Header';
 import { RootState } from '../../store';
@@ -7,6 +7,7 @@ import Participants from '../Participants/Participants';
 import Chat from '../Chat/Chat';
 import CloseIcon from '@mui/icons-material/Close';
 import PrivateChat from '../Chat/PrivateChat';
+import { setSelectedUser } from '../../store/userSlice';
 
 interface LayoutProps {
   theme: string;
@@ -15,6 +16,7 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ theme, setTheme }) => {
+  const dispatch = useDispatch();
   const [activeTab, setActiveTab] = useState<string>('group-chat'); // Default to Group Chat
   const [openChats, setOpenChats] = useState<{ id: string; name: string }[]>([]);
   const selectedUser = useSelector((state: RootState) => state.user.selectedUser);
@@ -31,6 +33,17 @@ const Layout: React.FC<LayoutProps> = ({ theme, setTheme }) => {
     }
   }, [selectedUser, selectedUserName]);
 
+  // Update `selectedUser` when switching between group and private chats
+  const handleTabChange = (event: React.SyntheticEvent, newTab: string) => {
+    setActiveTab(newTab);
+
+    if (newTab === 'group-chat') {
+      dispatch(setSelectedUser(null)); // Clear `selectedUser` when switching to group chat
+    } else {
+      dispatch(setSelectedUser(newTab)); // Set `selectedUser` to the selected private chat user
+    }
+  };
+
   // Close a chat tab
   const handleCloseChat = (chatId: string) => {
     setOpenChats(prevChats => {
@@ -43,6 +56,9 @@ const Layout: React.FC<LayoutProps> = ({ theme, setTheme }) => {
 
       return updatedChats;
     });
+    if (selectedUser === chatId) {
+      dispatch(setSelectedUser(null)); // Clear `selectedUser` if the closed tab was active
+    }
   };
 
   return (
@@ -75,7 +91,8 @@ const Layout: React.FC<LayoutProps> = ({ theme, setTheme }) => {
         <Box sx={{ flex: 3, display: 'flex', flexDirection: 'column' }}>
           <Tabs
             value={activeTab}
-            onChange={(e, newValue) => setActiveTab(newValue)}
+            // onChange={(e, newValue) => setActiveTab(newValue)}
+            onChange={handleTabChange}
             variant="scrollable"
             scrollButtons="auto"
           >
